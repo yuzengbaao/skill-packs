@@ -17,3 +17,4 @@ Automated CI verification for OpenClaw/Automaton skill packs.
 - Python tests: pytest with real data validation
 - Rust compile: cargo build + cargo test
 - SKILL.md format: YAML frontmatter validation
+
