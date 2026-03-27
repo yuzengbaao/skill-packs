@@ -18,3 +18,4 @@ Automated CI verification for OpenClaw/Automaton skill packs.
 - Rust compile: cargo build + cargo test
 - SKILL.md format: YAML frontmatter validation
 
+trigger
