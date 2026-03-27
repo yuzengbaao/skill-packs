@@ -56,3 +56,15 @@ jobs:
               assert "description" in meta, f"missing description in {f}"
               print(f"  OK: {meta['name']}")
           PYEOF
+
+  harvester-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install pytest requests
+      - name: Run harvester tests
+        run: python3 -m pytest harvester-scripts/tests/ -v
