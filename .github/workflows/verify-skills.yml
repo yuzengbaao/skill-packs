@@ -1,0 +1,57 @@
+name: Verify Skill Packs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install pytest requests
+      - name: Run Python tests
+        run: python3 -m pytest python-project/tests/ -v
+
+  rust-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Rust code
+        run: cd rust-project && cargo build
+      - name: Run Rust tests
+        run: cd rust-project && cargo test
+
+  skill-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install pyyaml
+      - name: Validate SKILL.md frontmatter
+        run: |
+          for f in skills/*/SKILL.md; do
+            echo "Checking $f..."
+            python3 -c "
+import yaml, sys
+with open('$f') as fh:
+    content = fh.read()
+parts = content.split('---', 2)
+if len(parts) < 3:
+    print('FAIL: invalid frontmatter'); sys.exit(1)
+meta = yaml.safe_load(parts[1])
+assert 'name' in meta, 'missing name'
+assert 'description' in meta, 'missing description'
+print(f'  OK: {meta[\"name\"]}')
+"
+          done
