@@ -1,6 +1,7 @@
 """从 SKILL.md 提取的测试用例 + 真实数据验证"""
+import os
 import sys
-sys.path.insert(0, '/tmp/skill-verification/python-project')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from bounty_parser import BountyInfo, _parse_reward_from_labels
 from unittest.mock import patch, MagicMock
