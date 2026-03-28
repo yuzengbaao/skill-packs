@@ -54,24 +54,28 @@ class DiscordLogin:
         )
 
         try:
-            # Try existing session first
+            # Try existing session first (launch separate browser for it)
             if self.session.is_state_valid("discord"):
                 existing_state = await self.session.load_state("discord")
-                await context.close()
-                context = await self.stealth._browser.new_context(
-                    storage_state=existing_state,
-                    user_agent=self.stealth.user_agent,
-                    locale="en-US",
-                )
-                page = await context.new_page()
-                await page.goto(DISCORD_LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
-                await asyncio.sleep(3)
-                if "login" not in page.url:
-                    logger.info("Discord: session still valid")
-                    return LoginResult(
-                        success=True, service="discord", state_saved=True,
-                    )
-                logger.info("Discord: session expired, re-login required")
+                if existing_state and existing_state.get("cookies"):
+                    try:
+                        session_stealth = StealthBrowser(headless=self.config.headless)
+                        session_result = await session_stealth.launch(
+                            storage_state=existing_state,
+                        )
+                        session_page = session_result.page
+                        await session_page.goto(DISCORD_LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
+                        await asyncio.sleep(3)
+                        if "login" not in session_page.url:
+                            logger.info("Discord: session still valid")
+                            await session_stealth.close()
+                            return LoginResult(
+                                success=True, service="discord", state_saved=True,
+                            )
+                        logger.info("Discord: session expired, re-login required")
+                        await session_stealth.close()
+                    except Exception as e:
+                        logger.warning("Session restore failed: %s, proceeding with login", e)
 
             await page.goto(DISCORD_LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
             await page.wait_for_selector(

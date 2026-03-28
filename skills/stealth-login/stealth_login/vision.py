@@ -15,14 +15,52 @@ logger = logging.getLogger(__name__)
 
 HCAPTCHA_PROMPT = """Analyze this hCaptcha challenge screenshot carefully.
 
-Determine:
-1. Challenge type: "grid_select" (click images matching criteria), "drag_drop" (drag piece to match), or "checkbox" (already solved)
-2. For grid_select: What is the instruction? Which grid cells (numbered 1-9 left-to-right, top-to-bottom) should be clicked?
-3. For drag_drop: Describe the draggable piece and where it should be placed. Give approximate pixel coordinates of the drag start and drop target relative to the full image.
-4. Is there a "Verify" or "Skip" button visible?
+Determine the challenge type:
+1. "grid_select" — a 3x3 grid of images, click those matching the instruction
+2. "drag_drop" — a puzzle piece that must be dragged to fit into the image
+3. "checkbox" — already solved (no challenge visible)
 
-Reply ONLY in JSON format:
+For grid_select:
+- What is the instruction text (e.g. "select all images with a boat")?
+- Which grid cells (numbered 1-9, left-to-right top-to-bottom) should be clicked?
+
+For drag_drop:
+- Locate the draggable puzzle piece (usually on the right side)
+- Locate where it should be placed (the gap/hole in the image)
+- Give pixel coordinates of the CENTER of the drag piece (drag_start) and the CENTER of the target hole (drag_end)
+- Coordinates must be relative to the image top-left corner
+
+Reply ONLY in JSON:
 {"type": "grid_select|drag_drop|checkbox", "instruction": "...", "cells_to_click": [1,2,3], "drag_start": {"x": 0, "y": 0}, "drag_end": {"x": 0, "y": 0}, "has_verify": true}"""
+
+HCAPTCHA_DRAG_PROMPT = """This is a cropped screenshot of an hCaptcha DRAG-DROP puzzle (500x470 pixels or similar).
+
+The puzzle shows geometric shapes on a textured background. There is a gap/hole in the pattern on the LEFT side, and a matching puzzle piece on the RIGHT side (usually in a "Move" area).
+
+Your task: Find the EXACT pixel coordinates of:
+1. drag_start: CENTER of the draggable puzzle piece (the piece on the right that needs to be moved)
+2. drag_end: CENTER of the target hole/gap (where the piece should be placed on the left)
+
+IMPORTANT:
+- Coordinates must be relative to the TOP-LEFT corner of THIS image
+- Be as precise as possible (within 5-10 pixels)
+- Look carefully at which shape in the pattern has a visible gap/outline
+- The matching piece is the one that fills that gap
+
+Reply ONLY in JSON:
+{"instruction": "...", "drag_start": {"x": 100, "y": 200}, "drag_end": {"x": 300, "y": 400}, "has_verify": false}"""
+
+HCAPTCHA_GRID_PROMPT = """This is a screenshot of an hCaptcha GRID SELECT challenge.
+
+There is a 3x3 grid of images. An instruction text tells you which images to select.
+
+Your task:
+1. Read the instruction text exactly
+2. Identify which grid cells (1-9, left-to-right top-to-bottom) match the instruction
+3. Only select cells that clearly match — when in doubt, exclude
+
+Reply ONLY in JSON:
+{"instruction": "select all images with ...", "cells_to_click": [1, 2, 3], "has_verify": true}"""
 
 ARKOSE_PROMPT = """Analyze this Arkose Labs FunCaptcha challenge screenshot.
 
